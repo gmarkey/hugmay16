@@ -1,0 +1,11 @@
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = 1
+}
+
+backend "s3" {
+  bucket = "${s3_bucket_name}"
+  access_key = "${aws_access_key}"
+  secret_key = "${aws_secret_key}"
+  region = "ap-southeast-2"
+}
