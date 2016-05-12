@@ -45,5 +45,5 @@ module "vault" {
 # ------------------------------------------------------------------------------
 
 output "Vault instance" {
-  value = "${module.vault.instance_ip}"
+  value = "export VAULT_ADDR=${module.vault.instance_ip}"
 }

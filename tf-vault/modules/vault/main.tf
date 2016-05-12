@@ -22,7 +22,7 @@ variable "aws_secret_key" {}
 /**/
 
 resource "aws_key_pair" "demo_pair" {
-  key_name   = "demo_pair"
+  key_name   = "demo_pair_vault"
   public_key = "${var.ssh_public_key}"
   
   lifecycle = {
@@ -32,7 +32,8 @@ resource "aws_key_pair" "demo_pair" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.s3_bucket_name}"
+  bucket        = "${var.s3_bucket_name}"
+  force_destroy = true
 
   lifecycle = {
     create_before_destroy = true
@@ -65,8 +66,18 @@ resource "aws_instance" "vault" {
   }
 
   provisioner "file" {
-    source      = "provision/vault.hcl.tmpl"
-    destination = "/home/centos"
+    source      = "${path.root}/provision/vault.hcl.tmpl"
+    destination = "/home/centos/vault.hcl.tmpl"
+
+    connection = {
+      user = "centos"
+    }
+
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/provision/vault.sh"
+    destination = "/home/centos/vault.sh"
 
     connection = {
       user = "centos"
@@ -76,14 +87,11 @@ resource "aws_instance" "vault" {
 
   provisioner "remote-exec" {
     inline = [
-      "yum -y install gettext unzip",
-      "export s3_bucket_name=${var.s3_bucket_name}",
-      "export aws_access_key=${var.aws_access_key}",
-      "export aws_secret_key=${var.aws_secret_key}",
-      "envsubst < vault.hcl.tmpl > vault.hcl",
-      "curl -Lo vault.zip ${var.vault_url}",
-      "unzip vault.zip",
-      "./vault && disown"
+      "echo export s3_bucket_name=${var.s3_bucket_name} >> environment",
+      "echo export aws_access_key=${var.aws_access_key} >> environment",
+      "echo export aws_secret_key=${var.aws_secret_key} >> environment",
+      "chmod +x vault.sh",
+      "./vault.sh"
     ]
 
     connection = {
@@ -123,5 +131,5 @@ output "name" {
 }
 
 output "instance_ip" {
-  value = "${aws_instance.vault.public_ip}"
+  value = "http://${aws_instance.vault.public_ip}:8200"
 }
